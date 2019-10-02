@@ -4,7 +4,7 @@ Very Basic example of Booting with GRUB, and requesting a 32bit Graphics mode wi
 # Overview
 The purpose of this is a basic sample of using a GRUB boot and requesting a graphics mode with MultiBoot, and then doing some very basic drawing functions.
 
-Included is a loyalty free font, with example use so you can write stuff to screen in you OS.
+Included is a loyalty free font, with example use so you can write stuff to screen in your OS.
 
 The idea is that it will be a reference for people who have created their own OS and would like to add graphics to it, and want to use MultiBoot to figure it out for them instead of coding all the required steps them selfs. 
 
