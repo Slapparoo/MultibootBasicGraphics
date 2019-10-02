@@ -58,11 +58,11 @@ Boot
 It has no drivers for anything, no memory managment, no keyboard or mouse IO, not Disk IO, nothing.
 
 # Boot sequence
-Grub loads
-Grub is configured to load our exec
-Grub switchs from 16bit mode to 32bit mode
-Grub read our exe, sees the request for the graphics mode
-Grub sets the graphics mode
-Grub starts executing our exe, (loader.s writen in ASM)
-Loader.s calls teh CPP KernalMain
+* Grub loads
+* Grub is configured to load our exec
+* Grub switchs from 16bit mode to 32bit mode
+* Grub read our exe, sees the request for the graphics mode
+* Grub sets the graphics mode
+* Grub starts executing our exe, (loader.s writen in ASM)
+* Loader.s calls teh CPP KernalMain
 
