@@ -4,7 +4,28 @@ Very Basic example of Booting with GRUB, and requesting a 32bit Graphics mode wi
 # Overview
 The purpose of this is a basic sample of using a GRUB boot and requesting a graphics mode with MultiBoot, and then doing some very basic drawing functions.
 
-The idea is that it will be a reference for people who have created their own OS and would like to add graphics to it, and want to use MUltiBoot to figure it out for them instead of coding all the required steps them selfs. 
+The idea is that it will be a reference for people who have created their own OS and would like to add graphics to it, and want to use MultiBoot to figure it out for them instead of coding all the required steps them selfs. 
+
+# MultiBoot basics
+The multiboot works by setting specific values at specific offsets in the boot execurable file, so we are requesting the graphics mode with the following:
+.set WIDTH, 1024  /* requested width */
+.set HEIGHT, 768  /* requested height */
+.set DEPTH, 32    /* requested depth */
+
+GRUB will read those values and set the Graphics mode prior to handing execution over to our application, so when our application starts, if the requestewd mode is valid, it will allready be in that mode.
+
+GRUB will also pass through the multiboot header containing what the Graphics mode is set to and other values of interest.
+
+The framebuffer_addr is where you will write your graphics operations to.
+
+Things to note, request a valid Graphics Mode, In the GRUB menu [https://askubuntu.com/questions/16042/how-to-get-to-the-grub-menu-at-boot-time] CLI the videoinfo will list the available and valid modes.
+
+I would recommend working with 32Bit graphics it is simplier and I would have thought as fast or faster than other options. Before you go thinking but 8bit graphics will be faster measure it.
+
+# Basic principles
+Don't read from the framebuffer_addr it will be slow.
+Don't fiddle around writing bits and peices to the framebuffer_addr write in bulk in a single loop from a buffer, the reason for this is, in the underlying architecture you are transfering data from your main RAM to the PCI-E bus, if you do it as single opertions you will be using burst writing in Cache which makes a huge difference.
+If you run directly against Hardware ie not in a Virtual machine you will need to setup up write combining for the framebuffer_addr in the Cache so it will busrt write in blocks to the PCI-E bus (in a VM you get this for free as the underlying OS has already done it).
 
 # Features:
 * Boots into 1024 x 768 x 32 Graphics mode.
