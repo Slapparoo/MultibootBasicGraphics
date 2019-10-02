@@ -1,5 +1,5 @@
 # MultibootBasicGraphics
-Very Basic example of Booting with GRUB, and requesting a graphics mode with Multiboot
+Very Basic example of Booting with GRUB, and requesting a 32bit Graphics mode with Multiboot 1024 x 768 x 42
 
 # Overview
 The purpose of this is a basic sample of using a GRUB boot and requesting a graphics mode with MultiBoot, and then doing some very basic drawing functions.
