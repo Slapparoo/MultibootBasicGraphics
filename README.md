@@ -1,4 +1,4 @@
-# MultibootBasicGraphics
+# Multiboot Basic Graphics
 Very Basic example of Booting with GRUB, and requesting a 32bit Graphics mode with Multiboot 1024 x 768 x 42
 
 # Overview
@@ -60,6 +60,7 @@ It has no drivers for anything, no memory managment, no keyboard or mouse IO, no
 # Boot sequence
 Grub loads
 Grub is configured to load our exec
+Grub switchs from 16bit mode to 32bit mode
 Grub read our exe, sees the request for the graphics mode
 Grub sets the graphics mode
 Grub starts executing our exe, (loader.s writen in ASM)
