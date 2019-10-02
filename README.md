@@ -4,6 +4,8 @@ Very Basic example of Booting with GRUB, and requesting a 32bit Graphics mode wi
 # Overview
 The purpose of this is a basic sample of using a GRUB boot and requesting a graphics mode with MultiBoot, and then doing some very basic drawing functions.
 
+Included is a loyalty free font, with example use so you can write stuff to screen in you OS.
+
 The idea is that it will be a reference for people who have created their own OS and would like to add graphics to it, and want to use MultiBoot to figure it out for them instead of coding all the required steps them selfs. 
 
 # MultiBoot basics
@@ -32,9 +34,10 @@ I would recommend working with 32Bit graphics it is simplier and I would have th
 # Features:
 * Boots into 1024 x 768 x 32 Graphics mode.
 * 8 x 8 loyalty free Font
+* Basic draw functions
 * 32bit not x64
 
-Included is a basic 8x8 font, the font was created in TempleOS using the FontEd example.
+The basic 8x8 font was created in TempleOS using the FontEd example.
 
 # Building
 Needs to be built under Linux (I tried WLS but it doesn't create the ISO image)
