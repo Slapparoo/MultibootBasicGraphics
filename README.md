@@ -8,6 +8,8 @@ Included is a loyalty free font, with example use so you can write stuff to scre
 
 The idea is that it will be a reference for people who have created their own OS and would like to add graphics to it, and want to use MultiBoot to figure it out for them instead of coding all the required steps them selfs. 
 
+Tested and working with Virtualbox 7.0 inwindows 11 using wsl 2.
+
 # MultiBoot basics
 The multiboot works by setting specific values at specific offsets in the boot executable file, so we are requesting the graphics mode with the following:
 ```asm
@@ -69,3 +71,11 @@ It has no drivers for anything, no memory managment, no keyboard or mouse IO, no
 * Grub starts executing our exe, (loader.s writen in ASM)
 * Loader.s calls teh CPP KernalMain
 
+# Toolchain install
+sudo apt install gcc g++ make grub-pc-bin xorriso
+
+# Virtual box
+Once Virtualbox is configed, there is a profile which I created under an earlier version of VirtualBox and Just retested in 7.0 in the [Releases](https://github.com/Slapparoo/MultibootBasicGraphics/releases)
+
+From the command prompt (VBoxManage.exe will be installed in a different location for you)
+/mnt/d/VirtualBox/VBoxManage.exe startvm Multiboot

@@ -44,7 +44,7 @@ mykernel.iso: mykernel.bin
 	echo '  boot'                            >> iso/boot/grub/grub.cfg
 	echo '}'                                 >> iso/boot/grub/grub.cfg
 	grub-mkrescue --output=mykernel.iso iso
-	cp mykernel.iso /mnt/share/mykernel.iso
+# cp mykernel.iso /mnt/share/mykernel.iso
 	
 
 install: mykernel.bin
