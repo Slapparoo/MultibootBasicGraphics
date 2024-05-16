@@ -82,14 +82,14 @@ void VideoGraphicsArray::FillRectangle(i32 x, i32 y, u32 w, u32 h, u32 color) {
 void VideoGraphicsArray::bufferToScreen() {
     
     // do the multiply once and test against 0
-    for(int i = width * height; i >= 0; i--) {
+    for(int i = 0; i < width * height; i++) {
         screen[i] = buffer[i];
     }
     
     
     
     // clear the buffer once copied
-    for(int i = width * height; i >= 0; i--) {
+    for(int i = 0; i < width * height; i++) {
         buffer[i] = 0;
     }
 }
