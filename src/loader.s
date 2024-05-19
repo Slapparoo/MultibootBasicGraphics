@@ -19,25 +19,27 @@
 
 Boot loader this is the boot entry point, it calls the kernelMain in kernel.cpp
 
+
+#define MULTIBOOT_HEADER_FLAGS  MULTIBOOT_PAGE_ALIGN | MULTIBOOT_MEMORY_INFO | MULTIBOOT_VIDEO_MODE | AOUT_KLUDGE
+
 */
+.att_syntax
+
+// .set FLAGS, 7 = graphics, 3 = crt   
+.set REQUEST_FLAGS, 7
 
 .set MAGIC, 0x1badb002
-.set FLAGS, 7
-/*.set FLAGS, 3 */
+.set FLAGS, REQUEST_FLAGS  /* crt mode */
 .set CHECKSUM, -(MAGIC + FLAGS)
 .set MODE_TYPE, 0
 .set WIDTH, 1024  /* requested width */
 .set HEIGHT, 768  /* requested height */
-/* .set WIDTH, 640
-.set HEIGHT, 480 */
 .set DEPTH, 32    /* requested bits per pixel BPP */
-
 .set HEADER_ADDR, 0
 .set LOAD_ADDR, 0
 .set LOAD_END_ADDR, 0
 .set BSS_END_ADDR, 0
 .set ENTRY_ADDR, 0
-
 
 /**
 from https://www.gnu.org/software/grub/manual/multiboot/multiboot.html#OS-image-format 
@@ -58,6 +60,8 @@ from https://www.gnu.org/software/grub/manual/multiboot/multiboot.html#OS-image-
 */
 
 .section .multiboot
+.global multiboot
+multiboot:
     .long MAGIC
     .long FLAGS
     .long CHECKSUM
@@ -81,9 +85,11 @@ from https://www.gnu.org/software/grub/manual/multiboot/multiboot.html#OS-image-
 loader:
     mov $kernel_stack, %esp
     mov $kernel_stack, %ecx
-    push %eax
-    push %ebx
-    push %ecx
+
+/*    .byte 0x50 - sneaky machine code for push eax */
+    push %eax  # Magic
+    push %ebx  # Pointer to multiboot
+    push %ecx  # Stack pointer
     call kernelMain
 
 _stop:
