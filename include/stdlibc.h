@@ -25,6 +25,8 @@ PChar strcpy(PChar dest, const PChar src);
 
 void abort(void);
 
+u32 getAsciiKey(void);
+
 
 /** CHeck if a bit is set in an array*/
 #define Bt(array, bit_index) \

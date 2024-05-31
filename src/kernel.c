@@ -18,7 +18,6 @@
 #include "stdarg.h"
 #include "stdlibc.h"
 #include "multiboot2.h"
-#include <sys/io.h>
 
 #define CHECK_FLAG(flags,bit) ((flags) & (1 << (bit)))
 
@@ -32,8 +31,7 @@ PMultibootHeader multibootHeader;
 PFn_putchar putchar;
 
 /**
- Draw something that looks like a window
-
+ * print the flags we set in the application header given to Grub Multiboot
 */
 int requestFlags(u32 requestFlags) {
   printf ("request flags:\n  pageAlign(%B), memInfo(%B), videoMode(%B)\n", 
@@ -82,57 +80,7 @@ u32 *mbPtr = &multiboot;
 extern u32 bootresponse;
 extern u32 kernel_stack;
 
-/** scancode to ascii map*/ /* incomplete but works for ascii*/
-char *keymap = "\0`1234567890-=\0\tqwertyuiop[]\n\0asdfghjkl;'\0\0\\zxcvbnm,./\0\0\0 \0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0";
-char *keymapUppercase = "\0~!@#$%^&*()_+\0\tQWERTYUIOP{}\n\0ASDFGHJKL:\"\0\0\\ZXCVBNM<>?\0\0\0 \0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0";
 
-boolean shift = false, ctrl = false, alt = false;
-u32 last = 0;
-
-/**
- * Poll to see if anything has changed since last time we checked
-*/
-u32 getAsciiKey() {
-    /*
-    keymap:
-        db	0
-        db	'1234567890-=', bspace
-        db	tab,'qwertyuiop[]',enter_key
-        db	ctrl_key,'asdfghjkl;',39,'`',lshift
-        db	'\','zxcvbnm,./',rshift,prnscr,alt_key,' '
-        db	caps,f1,f2,f3,f4,f5,f6,f7,f8,f9,f10,f11,f12,numlock
-        db	scroll,home,arrowup,pgup,num_sub,arrowleft,center5,arrowright
-        db	num_plus,_end,arrowdown,pgdn,_ins,del
-    */
-
-    u32 rawkeyScancode = inb(0x60);
-    u32 keyScancode = rawkeyScancode & 0x7f; // ignore the up flag
-    boolean up = (rawkeyScancode & 0x80);
-
-    if (rawkeyScancode != last) {
-        last = rawkeyScancode;
-        if (keyScancode == 0x2A || keyScancode == 0x36) { // left and right shift
-            shift = !up;
-        } else if (keyScancode == 0x38 || keyScancode == 0x3a) { // left and right control
-            ctrl = !up;
-        } else if (keyScancode == 0x71 || keyScancode == 0x72) { // alt
-            alt = !up;
-        } else if (keyScancode == 0x60) { // cursor keys?
-            // cursor key? always seem to be an up event?
-            
-        } else if (up) {
-            // printf("0x60 event (shift:%B)  %x, %B, %x\n", shift, rawkeyScancode, up, keyScancode);
-            // is printable
-            if (shift) { // could just return here
-                return keymapUppercase[keyScancode];    
-            } else {
-                return keymap[keyScancode];    
-            }
-        }
-    }
-
-    return 0;
-}
 
 /**
 
@@ -235,14 +183,13 @@ void kernelMain() {
 
     printf("\n (root)> ");
 
-    last = inb(0x60);
     vgaConsole->cursor = true;
     crt_boot_console_cursor();
     while (true) {
         char code = getAsciiKey();
         if (code != 0) {
             if (code == '\n') {
-                printf("\nerror: not found\n (root)> ");
+                printf("\nerror: not found\n (root)> "); // nothing is ever found
             } else {
                 printf("%c", code);
             }

@@ -45,6 +45,7 @@ void boot_vga_fillRectangle(i32 x, i32 y, u32 w, u32 h, u32 color);
 void boot_vga_bufferToScreen();
 void boot_vga_window(i32 x, i32 y, u32 w, u32 h);
 void boot_vga_init_window_console();
+void crt_boot_console_cursor();
 
 extern u64 FONT[256];
 extern u8 sys_font_std_8x12[256*12];

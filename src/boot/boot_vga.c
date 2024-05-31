@@ -36,7 +36,7 @@ PVideoGraphicsArray videoGraphicsArray;
 VgaConsole *vgaConsole;
 
 struct VgaConsole vgaBootConsole = {
-    0, 0, CLR_WHITE, CLR_BLACK, 80, 25, 0, 0, 8, 8, FONT, false
+    0, 0, CLR_WHITE, CLR_BLACK, 80, 25, 0, 0, 8, 8, (PChar)FONT, false
 };
 
 struct VgaConsole vgaFauxWindow = {
