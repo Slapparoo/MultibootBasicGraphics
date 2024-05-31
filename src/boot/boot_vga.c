@@ -102,6 +102,9 @@ void crt_boot_console_cursor() {
     }
 }
 
+/**
+ * put ch in crt mode (in loader.s if you set REQUEST_FLAGS = 3 instead of 7)
+*/
 int crt_putChar(uchar c, u8 color, u32 x, u32 y) {
     if (x >= SCREEN_WIDTH || y >= SCREEN_HEIGHT) {
         return 1; // Out of bounds check

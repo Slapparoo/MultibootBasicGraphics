@@ -104,6 +104,8 @@ void kernelMain() {
     if (mbRequestFlags & MULTIBOOT_VIDEO_MODE) {
         boot_vga_init(&vga, multibootHeader, buffer);
         putchar = &vga_boot_console_putchar;
+    } else {
+        crt_clear_screen(0);
     }
 
     if (validateBoot(magic, multibootHeader->flags)) {

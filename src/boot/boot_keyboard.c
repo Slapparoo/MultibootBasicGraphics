@@ -49,11 +49,7 @@ u32 getAsciiKey() {
             // cursor key? always seem to be an up event?
             
         } else if (up) {
-            if (shift) { 
-                return keymapUppercase[keyScancode]; 
-            } else {
-                return keymap[keyScancode];
-            }
+            return shift ? keymapUppercase[keyScancode] : keymap[keyScancode];
         }
     }
     return 0;
