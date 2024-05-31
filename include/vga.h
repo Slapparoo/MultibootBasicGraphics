@@ -35,7 +35,7 @@ typedef struct VideoGraphicsArray
 
 typedef struct VideoGraphicsArray * PVideoGraphicsArray;
 extern PVideoGraphicsArray videoGraphicsArray;
-extern struct VgaConsole vgaConsole;
+extern struct VgaConsole* vgaConsole;
 
 void boot_vga_init(PVideoGraphicsArray pvideoGraphicsArray, const PMultibootHeader boot_header, u32 *buffer);
 void boot_vga_putPixel(i32 x, i32 y, u32 color);
@@ -44,6 +44,7 @@ void boot_vga_putStr(PChar ch, i32 x, i32 y, u32 fgColor, u32 bgColor);
 void boot_vga_fillRectangle(i32 x, i32 y, u32 w, u32 h, u32 color);
 void boot_vga_bufferToScreen();
 void boot_vga_window(i32 x, i32 y, u32 w, u32 h);
+void boot_vga_init_window_console();
 
 extern u64 FONT[256];
 extern u8 sys_font_std_8x12[256*12];
@@ -76,6 +77,7 @@ typedef struct VgaConsole {
     u32 fontHeight;
     PChar font;
     PChar buffer;
+    boolean cursor;
 } VgaConsole;
 
 typedef struct CrtConsole {

@@ -29,5 +29,6 @@ void abort(void);
 /** CHeck if a bit is set in an array*/
 #define Bt(array, bit_index) \
     ((array[(bit_index) / (sizeof(char) * 8)] & (1 << ((bit_index) % (sizeof(char) * 8)))) != 0)
+/** if clause to do basic array bounds check */    
 #define ifInside(index, size) if (index >= 0 && index < size)
 #endif

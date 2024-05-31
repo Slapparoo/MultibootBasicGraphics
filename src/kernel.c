@@ -18,6 +18,7 @@
 #include "stdarg.h"
 #include "stdlibc.h"
 #include "multiboot2.h"
+#include <sys/io.h>
 
 #define CHECK_FLAG(flags,bit) ((flags) & (1 << (bit)))
 
@@ -41,11 +42,10 @@ int requestFlags(u32 requestFlags) {
     requestFlags & MULTIBOOT_VIDEO_MODE);
 }
 
-int bootFlags(u32 magic, u32 flags) {
-
-    /* Am I booted by a Multiboot-compliant boot loader? */
+int validateBoot(u32 magic, u32 flags) {
+        /* Am I booted by a Multiboot-compliant boot loader? */
     if (magic != MULTIBOOT_BOOTLOADER_MAGIC) {
-        printf ("Invalid magic number: %x\n", magic);
+        printf ("Invalid magic number: %x, expecting %x\n", magic, MULTIBOOT_BOOTLOADER_MAGIC);
         return 1;
     }
 
@@ -54,7 +54,10 @@ int bootFlags(u32 magic, u32 flags) {
         printf ("Both bits 4 and 5 are set.\n");
         return 2;
     }
+    return 0;
+}
 
+void bootFlags(u32 flags) {
     /* Print out the flags. */
     printf ("flags:\n");
 
@@ -74,8 +77,62 @@ int bootFlags(u32 magic, u32 flags) {
 }
 
 extern u32 loader;
-extern u32 multiboot;
+extern u32* multiboot;
 u32 *mbPtr = &multiboot;
+extern u32 bootresponse;
+extern u32 kernel_stack;
+
+/** scancode to ascii map*/ /* incomplete but works for ascii*/
+char *keymap = "\0`1234567890-=\0\tqwertyuiop[]\n\0asdfghjkl;'\0\0\\zxcvbnm,./\0\0\0 \0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0";
+char *keymapUppercase = "\0~!@#$%^&*()_+\0\tQWERTYUIOP{}\n\0ASDFGHJKL:\"\0\0\\ZXCVBNM<>?\0\0\0 \0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0";
+
+boolean shift = false, ctrl = false, alt = false;
+u32 last = 0;
+
+/**
+ * Poll to see if anything has changed since last time we checked
+*/
+u32 getAsciiKey() {
+    /*
+    keymap:
+        db	0
+        db	'1234567890-=', bspace
+        db	tab,'qwertyuiop[]',enter_key
+        db	ctrl_key,'asdfghjkl;',39,'`',lshift
+        db	'\','zxcvbnm,./',rshift,prnscr,alt_key,' '
+        db	caps,f1,f2,f3,f4,f5,f6,f7,f8,f9,f10,f11,f12,numlock
+        db	scroll,home,arrowup,pgup,num_sub,arrowleft,center5,arrowright
+        db	num_plus,_end,arrowdown,pgdn,_ins,del
+    */
+
+    u32 rawkeyScancode = inb(0x60);
+    u32 keyScancode = rawkeyScancode & 0x7f; // ignore the up flag
+    boolean up = (rawkeyScancode & 0x80);
+
+    if (rawkeyScancode != last) {
+        last = rawkeyScancode;
+        if (keyScancode == 0x2A || keyScancode == 0x36) { // left and right shift
+            shift = !up;
+        } else if (keyScancode == 0x38 || keyScancode == 0x3a) { // left and right control
+            ctrl = !up;
+        } else if (keyScancode == 0x71 || keyScancode == 0x72) { // alt
+            alt = !up;
+        } else if (keyScancode == 0x60) { // cursor keys?
+            // cursor key? always seem to be an up event?
+            
+        } else if (up) {
+            // printf("0x60 event (shift:%B)  %x, %B, %x\n", shift, rawkeyScancode, up, keyScancode);
+            // is printable
+            if (shift) { // could just return here
+                return keymapUppercase[keyScancode];    
+            } else {
+                return keymap[keyScancode];    
+            }
+        }
+    }
+
+    return 0;
+}
 
 /**
 
@@ -83,29 +140,44 @@ entry point, this is what gets called by the ASM loader.s
 you don't need stack pointer its just there to check whats going on
 
 */
-void kernelMain(u32 stackPointer , const PMultibootHeader multibootHeader_, u32 magic) {
-    multibootHeader = multibootHeader_;
+
+void main() {};
+
+void kernelMain() {
+    u32 *bootRes = &bootresponse;
+    u32 magic = bootRes[0];
+    multibootHeader = bootRes[1];
+    u32 c1, c2, c3;
 
     putchar = &crt_boot_console_putchar;
     u32 mbRequestFlags = mbPtr[1];
 
-    if (mbRequestFlags & MULTIBOOT_VIDEO_MODE) {
-        boot_vga_init(&vga, multibootHeader_, buffer);
-        putchar = &vga_boot_console_putchar;
 
-        boot_vga_window(100, 200, 800, 300);
-        boot_vga_window(120, 40, 80 * vgaConsole.fontWidth + 8, (50 * vgaConsole.fontHeight) + (20 + (vgaConsole.fontHeight*2)));
+    if (mbRequestFlags & MULTIBOOT_VIDEO_MODE) {
+        boot_vga_init(&vga, multibootHeader, buffer);
+        putchar = &vga_boot_console_putchar;
+    }
+
+    if (validateBoot(magic, multibootHeader->flags)) {
+        return 1;
+    }
+
+    if (mbRequestFlags & MULTIBOOT_VIDEO_MODE) {
+        boot_vga_window(100, 200, 100, 30);
+        boot_vga_window(120, 40, 80, 50);
     }
 
     requestFlags(mbRequestFlags);
-    bootFlags(magic, multibootHeader->flags);
+    bootFlags(multibootHeader->flags);
 
 	// dump some runtme information
+
     printf("multiboot request flags: %x, %b\n", mbRequestFlags, mbRequestFlags);
-    printf("magic                  : %x\n", magic);
-    printf("multibootHeader        : %x\n", multibootHeader);
-    printf("multibootRequest offest: %x\n", mbPtr);
-    printf("stackPointer           : %x\n", stackPointer);
+    printf("x bootresponse  addr     : %x\n", bootRes);
+    printf("x magic                  : %x\n", magic);
+    printf("x multibootHeader        : %x\n", bootRes[1]);
+    printf("x multibootRequest offest: %x\n", mbPtr);
+    printf("x stackPointer top       : %x\n", &kernel_stack);
     printf("instructionPointer     : %x\n", &kernelMain);
     if (mbRequestFlags & MULTIBOOT_VIDEO_MODE) {
         printf("screen buffer          : %x\n", buffer);
@@ -153,25 +225,27 @@ void kernelMain(u32 stackPointer , const PMultibootHeader multibootHeader_, u32 
         printf("u64 framebuffer_addr   : %x\n", multibootHeader->framebuffer_addr);
         printf("u32 framebuffer_pitch  : %x\n", multibootHeader->framebuffer_pitch);
         
-        printf("u32 framebuffer_width  : %x, %i\n", multibootHeader->framebuffer_width, multibootHeader->framebuffer_width);
-        printf("u32 framebuffer_height : %x, %i\n", multibootHeader->framebuffer_height, multibootHeader->framebuffer_height);
-        printf("u8 framebuffer_bpp     : %x, %i\n", multibootHeader->framebuffer_bpp, multibootHeader->framebuffer_bpp);
+        printf("u32 framebuffer_(width,height,bpp)  :%ix%ix%i\n", multibootHeader->framebuffer_width, multibootHeader->framebuffer_height, multibootHeader->framebuffer_bpp);
         printf("u8 framebuffer_type    : %x\n", multibootHeader->framebuffer_type);
     }
 
-    for (int i = 0; i < 80; i++) {
+    for (int i = 0; i < 256; i++) {
         printf("%c", i);
     }
-    printf("\n");
-    for (int i = 80; i < 160; i++) {
-        printf("%c", i);
-    }
-    printf("\n");    
-    for (int i = 160; i < 240; i++) {
-        printf("%c", i);
-    }
-    printf("\n");    
-    for (int i = 240; i < 256; i++) {
-        printf("%c", i);
+
+    printf("\n (root)> ");
+
+    last = inb(0x60);
+    vgaConsole->cursor = true;
+    crt_boot_console_cursor();
+    while (true) {
+        char code = getAsciiKey();
+        if (code != 0) {
+            if (code == '\n') {
+                printf("\nerror: not found\n (root)> ");
+            } else {
+                printf("%c", code);
+            }
+        }
     }
 }

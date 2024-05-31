@@ -1,0 +1,6 @@
+iso/
+obj32/
+obj64/
+.vscode/
+*.bin
+*.iso

@@ -19,13 +19,11 @@
 
 Boot loader this is the boot entry point, it calls the kernelMain in kernel.cpp
 
-
 #define MULTIBOOT_HEADER_FLAGS  MULTIBOOT_PAGE_ALIGN | MULTIBOOT_MEMORY_INFO | MULTIBOOT_VIDEO_MODE | AOUT_KLUDGE
 
 */
-.att_syntax
-
 // .set FLAGS, 7 = graphics, 3 = crt   
+.code32
 .set REQUEST_FLAGS, 7
 
 .set MAGIC, 0x1badb002
@@ -59,8 +57,12 @@ from https://www.gnu.org/software/grub/manual/multiboot/multiboot.html#OS-image-
 
 */
 
-.section .multiboot
+.global bootresponse
+.global loader
 .global multiboot
+.global kernel_stack
+
+.section .multiboot
 multiboot:
     .long MAGIC
     .long FLAGS
@@ -74,29 +76,26 @@ multiboot:
     .long WIDTH
     .long HEIGHT
     .long DEPTH
-    /* enough space for the returned header */
+    /* enough space for the returned header - this isn't where is puts it*/
+multibootHeader:
     .space 4 * 13
-
+bootresponse:   .long
+multibootHdr:   .long    
 .section .text
 .extern kernelMain
 .extern callConstructors
-.global loader
 
 loader:
     mov $kernel_stack, %esp
-    mov $kernel_stack, %ecx
-
-/*    .byte 0x50 - sneaky machine code for push eax */
-    push %eax  # Magic
-    push %ebx  # Pointer to multiboot
-    push %ecx  # Stack pointer
+    mov %eax, bootresponse
+    mov %ebx, [bootresponse + 4]
+    /* I think there may be some moves missing to set DS, ES, CS SS etc */
     call kernelMain
 
 _stop:
     cli
     hlt
     jmp _stop
-
 
 .section .bss
 .space 200*1024*1024; # 200 MiB

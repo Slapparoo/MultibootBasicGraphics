@@ -33,9 +33,16 @@ u32 logBufferIx = 0;
 
 PVideoGraphicsArray videoGraphicsArray;
 
-struct VgaConsole vgaConsole = {
-    0, 0, CLR_BLACK, CLR_LIGHT_GREY_3, 80, 50, 125, 60, 8, 12, sys_font_std_8x12
+VgaConsole *vgaConsole;
+
+struct VgaConsole vgaBootConsole = {
+    0, 0, CLR_WHITE, CLR_BLACK, 80, 25, 0, 0, 8, 8, FONT, false
 };
+
+struct VgaConsole vgaFauxWindow = {
+    0, 0, CLR_BLACK, CLR_LIGHT_GREY_3, 0, 0, 0, 0, 8, 12, sys_font_std_8x12, false
+};
+
 
 struct CrtConsole crtConsole = {
     0, 0, 0x0f
@@ -49,21 +56,49 @@ Fn_putchar(log_boot_console) {
 }
 
 /**
- * @TODO no scrolling
+ * @TODO add scrolling
 */
 Fn_putchar(vga_boot_console) {
     // also write to crt console
+    boolean curs = vgaConsole->cursor;
+    vgaConsole->cursor = false;
     crt_boot_console_putchar(ch);
     if (ch == '\n') {
-        vgaConsole.row++;
-        vgaConsole.col = 0;
+        if (curs) {
+            boot_vga_putChar(' ', 
+                vgaConsole->col * vgaConsole->fontWidth + vgaConsole->xpos, 
+                vgaConsole->row * vgaConsole->fontHeight + vgaConsole->ypos, 
+                vgaConsole->fgColor, 
+                vgaConsole->bgColor);
+        }
+        vgaConsole->row++;
+        vgaConsole->col = 0;
     } else {
         boot_vga_putChar(ch, 
-            vgaConsole.col * vgaConsole.fontWidth + vgaConsole.xpos, 
-            vgaConsole.row * vgaConsole.fontHeight + vgaConsole.ypos, 
-            vgaConsole.fgColor, 
-            vgaConsole.bgColor);
-        vgaConsole.col++;
+            vgaConsole->col * vgaConsole->fontWidth + vgaConsole->xpos, 
+            vgaConsole->row * vgaConsole->fontHeight + vgaConsole->ypos, 
+            vgaConsole->fgColor, 
+            vgaConsole->bgColor);
+        vgaConsole->col++;
+
+        if (vgaConsole->col >= vgaConsole->width) {
+            vgaConsole->row++;
+            vgaConsole->col = 0;
+        }
+    }
+    vgaConsole->cursor = curs;
+    crt_boot_console_cursor();
+}
+
+
+void crt_boot_console_cursor() {
+    if (vgaConsole->cursor) {
+        boot_vga_putChar(' ', 
+                vgaConsole->col * vgaConsole->fontWidth + vgaConsole->xpos, 
+                vgaConsole->row * vgaConsole->fontHeight + vgaConsole->ypos, 
+                vgaConsole->bgColor, 
+                vgaConsole->fgColor);
+
     }
 }
 
@@ -160,18 +195,18 @@ void boot_vga_bufferToScreen() {
 }
 
 void boot_vga_putChar(uchar ch, i32 x, i32 y, u32 fgColor, u32 bgColor) {
-    if (x < 0 || x + vgaConsole.fontWidth > videoGraphicsArray->width 
-        || y < 0 || y + vgaConsole.fontHeight > videoGraphicsArray->height) {
+    if (x < 0 || x + vgaConsole->fontWidth > videoGraphicsArray->width 
+        || y < 0 || y + vgaConsole->fontHeight > videoGraphicsArray->height) {
             // don't draw if parially or fully outside screen
         return;
     }
 
-    u8 *fontPointer = &vgaConsole.font[(ch & 0xFF) * vgaConsole.fontHeight];
+    u8 *fontPointer = &vgaConsole->font[(ch & 0xFF) * vgaConsole->fontHeight];
     u32 ix = (videoGraphicsArray->width * y) + x;
-    u32 rowInc = videoGraphicsArray->width - vgaConsole.fontWidth;
+    u32 rowInc = videoGraphicsArray->width - vgaConsole->fontWidth;
 
-    u32 nextRow = vgaConsole.fontWidth -1;
-    for (int i = 0; i < vgaConsole.fontWidth * vgaConsole.fontHeight; i++)
+    u32 nextRow = vgaConsole->fontWidth -1;
+    for (int i = 0; i < vgaConsole->fontWidth * vgaConsole->fontHeight; i++)
     {
         ifInside(ix, videoGraphicsArray->indexMax) 
             if (Bt(fontPointer, i))
@@ -183,13 +218,13 @@ void boot_vga_putChar(uchar ch, i32 x, i32 y, u32 fgColor, u32 bgColor) {
 
         if (i == nextRow) {
             ix += rowInc;
-            nextRow += vgaConsole.fontWidth;
+            nextRow += vgaConsole->fontWidth;
         }
     }
 }
 
 void boot_vga_putStr(PChar ch, i32 x, i32 y, u32 fgColor, u32 bgColor) {
-    for (int i; ch[i] != 0; i++, x += vgaConsole.fontWidth) {
+    for (int i; ch[i] != 0; i++, x += vgaConsole->fontWidth) {
         boot_vga_putChar(ch[i], x, y, fgColor, bgColor);
     }    
 }
@@ -210,31 +245,45 @@ void boot_vga_init(PVideoGraphicsArray pvideoGraphicsArray, const PMultibootHead
 
     videoGraphicsArray->dest = videoGraphicsArray->screen; 
     videoGraphicsArray->indexMax = videoGraphicsArray->width * videoGraphicsArray->height;
+    vgaConsole = &vgaBootConsole;
 }
 
-void boot_vga_window(i32 x, i32 y, u32 w, u32 h) {
+void boot_vga_window(i32 x, i32 y, u32 cols, u32 rows) {
+    boot_vga_init_window_console();
+    u32 w = cols * vgaConsole->fontWidth + 8;
+    u32 h = (rows * vgaConsole->fontHeight) + (20 + (vgaConsole->fontHeight*2));
+
+    vgaFauxWindow.xpos = x+4;
+    vgaFauxWindow.ypos = y+vgaConsole->fontHeight + 6;
+    vgaFauxWindow.width = cols;
+    vgaFauxWindow.height = rows;
+
     boot_vga_fillRectangle(x, y, w, h, CLR_MED_GREY); // full
     boot_vga_fillRectangle(x+2, y+2, w-4, 2, CLR_DARK_BLUE_1); // top bar
-    boot_vga_fillRectangle(x+2, y+4, w-4, vgaConsole.fontHeight, CLR_BLUE); // top bar
-    boot_vga_fillRectangle(x+2, y+vgaConsole.fontHeight + 4, w-4, 2, CLR_DARK_BLUE_2); // top bar
-    boot_vga_fillRectangle(x+2, y+vgaConsole.fontHeight + 6, w-4, h-(vgaConsole.fontHeight * 2 + 12), CLR_LIGHT_GREY_3); // content
-    boot_vga_fillRectangle(x+2, y+h-(vgaConsole.fontHeight +4), w-4, vgaConsole.fontHeight+2, CLR_LIGHT_GREY_1); // bottom bar
-    boot_vga_fillRectangle(x+w-37, y+3, vgaConsole.fontWidth+2, vgaConsole.fontHeight+2, CLR_LIGHT_GREY_2); // button back
-    boot_vga_fillRectangle(x+w-25, y+3, vgaConsole.fontWidth+2, vgaConsole.fontHeight+2, CLR_LIGHT_GREY_2); // button back
-    boot_vga_fillRectangle(x+w-13, y+3, vgaConsole.fontWidth+2, vgaConsole.fontHeight+2, CLR_LIGHT_GREY_2); // button back
+    boot_vga_fillRectangle(x+2, y+4, w-4, vgaConsole->fontHeight, CLR_BLUE); // top bar
+    boot_vga_fillRectangle(x+2, y+vgaConsole->fontHeight + 4, w-4, 2, CLR_DARK_BLUE_2); // top bar
+    boot_vga_fillRectangle(x+2, y+vgaConsole->fontHeight + 6, w-4, h-(vgaConsole->fontHeight * 2 + 12), CLR_LIGHT_GREY_3); // content
+    boot_vga_fillRectangle(x+2, y+h-(vgaConsole->fontHeight +4), w-4, vgaConsole->fontHeight+2, CLR_LIGHT_GREY_1); // bottom bar
+    boot_vga_fillRectangle(x+w-37, y+3, vgaConsole->fontWidth+2, vgaConsole->fontHeight+2, CLR_LIGHT_GREY_2); // button back
+    boot_vga_fillRectangle(x+w-25, y+3, vgaConsole->fontWidth+2, vgaConsole->fontHeight+2, CLR_LIGHT_GREY_2); // button back
+    boot_vga_fillRectangle(x+w-13, y+3, vgaConsole->fontWidth+2, vgaConsole->fontHeight+2, CLR_LIGHT_GREY_2); // button back
     boot_vga_putStr("Look a window", x+(w/2)-(13*8)/2, y+4, CLR_WHITE, CLR_BLUE);
     
     boot_vga_putChar(255, x+4, y+4, CLR_RED, CLR_BLUE);  // square
     boot_vga_putChar(255, x+14, y+4, CLR_GREEN, CLR_BLUE); // square
     boot_vga_putChar(255, x+24, y+4, CLR_YELLOW, CLR_BLUE); // square
     boot_vga_putChar('_', x+w-36, y+4, CLR_DARK_GREY_1, CLR_LIGHT_GREY_2); // minimize
-    boot_vga_fillRectangle(x+w-24, y+4, vgaConsole.fontWidth, vgaConsole.fontHeight, CLR_DARK_GREY_1); // maximize
-    boot_vga_fillRectangle(x+w-23, y+5, vgaConsole.fontWidth-2, vgaConsole.fontHeight-2, CLR_LIGHT_GREY_2); // maximize
+    boot_vga_fillRectangle(x+w-24, y+4, vgaConsole->fontWidth, vgaConsole->fontHeight, CLR_DARK_GREY_1); // maximize
+    boot_vga_fillRectangle(x+w-23, y+5, vgaConsole->fontWidth-2, vgaConsole->fontHeight-2, CLR_LIGHT_GREY_2); // maximize
     boot_vga_putChar('X', x+w-12, y+4, CLR_DARK_GREY_1, CLR_LIGHT_GREY_2); // exit  
     
-    boot_vga_putStr("Status bar | with | interesting | stuff ", x+4, y+h-(vgaConsole.fontHeight+2), CLR_DARK_GREY_2, CLR_LIGHT_GREY_1);
+    boot_vga_putStr("Status bar | with | interesting | stuff ", x+4, y+h-(vgaConsole->fontHeight+2), CLR_DARK_GREY_2, CLR_LIGHT_GREY_1);
 }
 
+void boot_vga_init_window_console() {
+    // transition from being on a blan screen to being in a faux window
+    vgaConsole = &vgaFauxWindow;
+};
 
 /*
  * 8 * 8 font 1 bit per pixel, 64 bits per charactor
