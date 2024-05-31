@@ -11,7 +11,7 @@ Included is a loyalty free font, with example use so you can write stuff to scre
 
 The idea is that it will be a reference for people who have created their own OS and would like to add graphics to it, and want to use MultiBoot to figure it out for them instead of coding all the required steps them selfs. 
 
-Tested and working with Virtualbox 7.0 inwindows 11 using wsl 2.
+Tested and working with Virtualbox 7.0 and QEMU in windows 11 using wsl 2.
 
 # MultiBoot basics
 The multiboot works by setting specific values at specific offsets in the boot executable file, so we are requesting the graphics mode with the following:
