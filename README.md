@@ -2,7 +2,7 @@
 Very Basic example of Booting with GRUB, and requesting a 32bit Graphics mode with Multiboot 1024 x 768 x 32
 
 * the master branch is the bare bones in C++
-* main-c is slightly more advanged but in C
+* main-c is slightly more advanced but in C, it has a basic printf and keybaord in.
 
 # Overview
 The purpose of this is a basic sample of using a GRUB boot and requesting a graphics mode with MultiBoot, and then doing some very basic drawing functions.
